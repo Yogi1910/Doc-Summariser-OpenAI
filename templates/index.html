@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {
+    font-family: 'Arial', sans-serif;
+    background: #f3f4f6;
+    margin: 0;
+    padding: 0;
+}
+
+.top-ribbon {
+    background: #ca3622;
+    color: white;
+    text-align: center;
+    padding: 20px 0;
+    font-size: 24px;
+}
+
+.container {
+    text-align: center;
+    margin: 20px auto;
+    max-width: 600px;
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.upload-btn-wrapper {
+    position: relative;
+    overflow: hidden;
+    display: inline-block;
+}
+
+.btn {
+    background-color: #5e5353;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.btn:hover {
+    background-color: #e53935;
+}
+
+.upload-btn-wrapper input[type=file] {
+    font-size: 100px;
+    position: absolute;
+    left: 0;
+    top: 0;
+    opacity: 0;
+}
+
+.dropdown {
+    margin-top: 20px;
+}
+
+.summary {
+    display: none;
+    margin-top: 20px;
+    padding: 20px;
+    border-radius: 5px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    white-space: pre-line;
+}
+
+
+select {
+    padding: 12px;
+    font-size: 16px;
+    width: 100%;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    margin-top: 10px;
+}
+
+h2 {
+    font-size: 24px;
+    color: #343a40;
+    margin-bottom: 15px;
+}
+
+p {
+    font-size: 16px;
+    color: #555;
+    line-height: 1.6;
+}
+
+textarea {
+    width: 80%;
+    padding: 10px;
+    font-size: 14px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    margin-top: 10px;
+    text-align: center;
+    resize: vertical;
+}
+
+.download-btn {
+    background-color: #4caf50;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    cursor: pointer;
+    margin-top: 10px;
+    transition: background-color 0.3s;
+}
+
+.download-btn:hover {
+    background-color: #45a049;
+}
+
+    </style>
+</head>
+<body>
+    <div class="top-ribbon">
+        Welcome to Meeting Summarizer
+    </div>
+    <div class="container">
+      <form action="/get_summary" method="POST" enctype="multipart/form-data">
+        <div class="upload-btn-wrapper">
+            <button class="btn">Upload a txt/srt File</button>
+            <input type="file" name="file" accept=".txt, .srt" id="file-upload-input" />
+            <span id="file-name" class="file-name">No file selected</span>
+        </div>
+        
+        <div class="dropdown">
+            <select id="meeting-type" name="meeting-type">
+                <option value="default">Select a Category</option>
+                <option value="Objective">Objective Summary</option>
+                <option value="Executive">Executive Summary</option>
+                <option value="KeyTakeaways">Key Takeaways</option>
+                <option value="ActionItem">Action Item</option>
+                <option value="Training">Training Summary</option>
+                <option value="MOMs">Meeting Minutes (MOMs)</option>
+                <option value="SpeakerNotes">Speaker Notes</option>
+            </select>
+        </div>
+        
+        <!-- <button type="submit" style="display: none;" id="hidden-submit"></button> -->
+    </form>
+    
+        
+        </div>
+        <div class="summary" id="summary-speaker">
+            <h2>Summary for Speaker</h2>
+            <p>This is where the GPT model's summary for the Speaker will be displayed.</p>
+        </div>
+        <div class="summary" id="summary-senior-leadership">
+            <h2>Summary for Senior Leadership</h2>
+            <p>This is where the GPT model's summary for Senior Leadership will be displayed.</p>
+        </div>
+        <div class="summary" id="summary-mass">
+            <h2>Summary for Mass</h2>
+            <p>This is where the GPT model's summary for Mass will be displayed.</p>
+        </div>
+        <div class="summary" id="summary-meeting-notes">
+            <h2>Summary for Meeting Notes</h2>
+            <p>This is where the GPT model's summary for Meeting Notes will be displayed.</p>
+        </div>
+        <div class="summary" id="summary-summary">
+            <h2>Summary</h2>
+            <p>This is where the GPT model's general summary will be displayed.</p>
+        </div>
+        <div class="instruction" style="margin-bottom: 30px; text-align: center;">
+            <h3 style="margin-top: 50px;">Instructions</h3>
+            <textarea id="user-instruction" rows="5" placeholder="Enter your custom instructions here..."></textarea>
+        </div>
+        <div class="result" id="result-summary" style="display: none;">
+            <h2 style="text-align: centre";>Result</h2>
+            <p id="summary-text"></p>
+        </div>
+        <div class="button-container" style="text-align: center;">
+          <button class="download-btn" id="run-python-function">Go!</button>
+          <div id="loading-icon" style="display: none;">
+              <!-- Loading spinner -->
+              <div class="spinner-border" role="status">
+                  <span class="visually-hidden">Loading...</span>
+              </div>
+          </div>
+        </div>
+      
+
+      <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+      
+
+    </div>
+    <script>
+      // Get references to HTML elements using their IDs
+      const categorySelect = document.getElementById("meeting-type");
+      const userInstructionTextArea = document.getElementById("user-instruction");
+      const resultSummary = document.getElementById("result-summary");
+      const summaryText = document.getElementById("summary-text");
+      const runPythonButton = document.getElementById("run-python-function");
+      const loadingIndicator = document.getElementById("loading-indicator"); // Define the loadingIndicator
+      const downloadButton = document.getElementById("download-report"); // Define the downloadButton
+      const fileUploadInput = document.getElementById("file-upload-input");
+      const fileNameDisplay = document.getElementById("file-name");
+    
+      // Dummy instructions for different meeting categories
+      const categoryInstructions = {
+    "Objective": "Please generate an objective summary of the meeting transcript. Summarize the key points, decisions, and action items discussed during the meeting. Focus on providing a factual account without introducing any interpretation or bias. The objective is to capture the essence of the meeting in a concise and informative manner.",
+    "Executive": "Generate an executive summary based on the meeting transcript tailored for senior leadership. Highlight critical decisions, key outcomes, and their strategic implications discussed during the meeting. Include recommendations and outline the subsequent steps or actions to be taken. The objective is to provide a concise yet comprehensive summary targeted at senior leadership, ensuring it captures the strategic importance and actionable insights derived from the meeting.",
+    "KeyTakeaways": "Please generate key takeaways from the meeting transcript. Summarize the main points and key insights discussed during the meeting. Focus specifically on distilling the essential information that team members or stakeholders need to grasp quickly. Highlight the most significant aspects, key decisions, and crucial insights derived from the meeting, ensuring the summary is concise and easily understandable.",
+    "ActionItem": "Create a list of all the action items, assigned responsibilities, and deadlines discussed and decided upon during the meeting. Present this information in a clear, organized format that highlights each action item, the responsible parties, and the associated deadlines. The objective is to compile a comprehensive and structured summary specifically focused on the actionable tasks arising from the meeting, ensuring clarity regarding responsibilities and timelines.",
+    "ProblemSolution": "This document encapsulates the meeting's discussions on problems and their corresponding solutions or strategies. It highlights the challenges discussed and their resolutions.",
+    "Training": "Generate a training summary based on the meeting transcript, designed for individuals who were absent. Summarize the main discussions, decisions, and important points covered during the meeting to ensure that absent team members can quickly catch up. Highlight key takeaways and essential information that will aid in their understanding. Additionally, provide specific notes or sections addressing the absence of certain individuals, ensuring the summary covers the topics crucial for their awareness and integration upon their return.",
+    "MOMs": "Please generate detailed meeting minutes summarizing all discussions, decisions, attendees, and actions taken during the meeting. Organize the document systematically and include timestamps if available. Ensure the minutes encompass a comprehensive overview of the meeting, covering topics discussed, decisions made, attendees present, and actions assigned, in a detailed and structured format.",
+    "SpeakerNotes": "Provide speaker notes summarizing the key points made by each speaker during the meeting. Include the name of each speaker along with a brief summary of their contributions or the main ideas they presented. Ensure the notes capture the essence of each speaker's input, helping to highlight individual perspectives and key information shared during the meeting.",
+};
+
+
+
+
+      // jQuery example to trigger form submission
+      document.getElementById('run-python-function').addEventListener('click', function() {
+    // Trigger form submission when "Go!" button is clicked
+          document.getElementById('summary-form').submit();
+      });
+
+// The rest of your JavaScript code remains unchanged...
+
+
+
+    
+      // Function to update the custom instructions textarea and display the summary
+      function updateInstructions() {
+          const selectedCategory = categorySelect.value;
+          if (selectedCategory in categoryInstructions) {
+            userInstructionTextArea.value = categoryInstructions[selectedCategory];
+          } else {
+            userInstructionTextArea.value = ""; // Clear the textarea if no instructions are available.
+          }
+          
+          // Hide the result area if a new category is selected
+          resultSummary.style.display = "none";
+        }
+
+        // Event listener for the dropdown selection
+        categorySelect.addEventListener("change", updateInstructions);
+
+        // Event listener for the file input change
+        fileUploadInput.addEventListener("change", function () {
+          if (fileUploadInput.files.length > 0) {
+            fileNameDisplay.textContent = fileUploadInput.files[0].name;
+          } else {
+            fileNameDisplay.textContent = "No file selected";
+          }
+        });
+    
+      // Event listener for category selection
+      categorySelect.addEventListener("change", updateInstructions);
+    
+      // Initially populate instructions based on the default selected category
+      updateInstructions();
+    
+      // Event listener for the "Go!" button
+      // Event listener for the "Go!" button
+      runPythonButton.addEventListener("click", async function () {
+    const selectedCategory = categorySelect.value;
+
+    if (selectedCategory !== "default") {
+        const loadingIcon = document.getElementById("loading-icon");
+        loadingIcon.style.display = "block"; // Show loading indicator
+
+        try {
+            const formData = new FormData();
+            formData.append("file", fileUploadInput.files[0]);
+            formData.append("meeting-type", selectedCategory);
+
+            const response = await fetch("/get_summary", {
+                method: "POST",
+                body: formData,
+            });
+
+            if (!response.ok) {
+                throw new Error("Network response was not ok.");
+            }
+
+            const data = await response.json();
+            const summary = data.summary;
+
+            // Display the summary
+            const summaryText = document.getElementById("summary-text");
+            summaryText.textContent = summary;
+
+            // Show the result area
+            const resultSummary = document.getElementById("result-summary");
+            resultSummary.style.display = "block";
+
+            // Hide the loading indicator
+            loadingIcon.style.display = "none";
+        } catch (error) {
+            console.error("Error occurred:", error);
+
+            // Hide loading indicator in case of an error
+            loadingIcon.style.display = "none";
+        }
+    } else {
+        // Hide the result area if no category is selected
+        const resultSummary = document.getElementById("result-summary");
+        resultSummary.style.display = "none";
+    }
+});
+
+
+
+    </script>
+    
+</body>
+</html>
